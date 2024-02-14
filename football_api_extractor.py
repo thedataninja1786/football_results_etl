@@ -13,7 +13,7 @@ logs_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 logging.basicConfig(filename=f"logs/app-{logs_datetime}.log", level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class FootballAPI:
-    def __init__(self) -> None:
+    def __init__(self):
          self.api_key = Config.API_KEY
          self.host = Config.HOST
          self.base_url = Config.BASE_URL
@@ -29,7 +29,7 @@ class FootballAPI:
         }
 
     
-    def gen_url(self,date) -> str:        
+    def gen_url(self,date):        
         return self.base_url + date
 
 
