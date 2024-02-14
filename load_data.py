@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 
 logs_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
 logging.basicConfig(filename=f"logs/app - {logs_datetime}.log", level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class DataLoader():
@@ -17,43 +18,48 @@ class DataLoader():
 
 
     def connect(self):
-        if os.path.exists(self.db_name):
-            self.conn = sqlite3.connect(self.db_name)
-            logging.info(f"{self.__class__.__name__} - connected to database: {self.db_name}")
-        else:
-            logging.info(f"{self.__class__.__name__} - {self.db_name} does not exist, and has been created!")
-            self.conn = sqlite3.connect(self.db_name)
+        try:
+            if os.path.exists(self.db_name):
+                self.conn = sqlite3.connect(self.db_name)
+                logging.info(f"{self.__class__.__name__} [INFO] - connected to database: {self.db_name}")
+            else:
+                logging.info(f"{self.__class__.__name__} [INFO] - {self.db_name} does not exist, and has been created!")
+                self.conn = sqlite3.connect(self.db_name)
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__} - [ERROR] {e} occurred when trying to connect to {self.db_name}!")
         
     
     def write_data(self,data_df,table_exists="upsert"):
-        if table_exists == "replace":
-            data_df.to_sql(self.table_name, self.conn, if_exists='replace', index=False)
-        elif table_exists == "append":
-            data_df.to_sql(self.table_name, self.conn, if_exists='append', index=False)
-        elif table_exists == "upsert":
+        try:
+            if table_exists == "replace":
+                data_df.to_sql(self.table_name, self.conn, if_exists='replace', index=False)
+            elif table_exists == "append":
+                data_df.to_sql(self.table_name, self.conn, if_exists='append', index=False)
+            elif table_exists == "upsert":
 
-            update_columns = [c for c in data_df.columns if c not in ['fixture_id', 'event_timestamp']]
-            upsert_query =      f"""
-                                    INSERT INTO {self.table_name} ({', '.join(data_df.columns)})
-                                    VALUES ({', '.join(['?' for _ in data_df.columns])})
-                                    ON CONFLICT(fixture_id, event_timestamp) DO UPDATE SET
-                                    {', '.join([f"{col}=EXCLUDED.{col}" for col in update_columns])};
-                                """ 
-            data_tuples = list(data_df.itertuples(index=False, name=None))
-            cursor = self.conn.cursor()
+                update_columns = [c for c in data_df.columns if c not in ['fixture_id', 'event_timestamp']]
+                upsert_query =      f"""
+                                        INSERT INTO {self.table_name} ({', '.join(data_df.columns)})
+                                        VALUES ({', '.join(['?' for _ in data_df.columns])})
+                                        ON CONFLICT(fixture_id, event_timestamp) DO UPDATE SET
+                                        {', '.join([f"{col}=EXCLUDED.{col}" for col in update_columns])};
+                                    """ 
+                data_tuples = list(data_df.itertuples(index=False, name=None))
+                cursor = self.conn.cursor()
 
-            try:
-                cursor.executemany(upsert_query, data_tuples)
-                self.conn.commit()
-                print((f"Data upserted successfully into {self.table_name}."))
-                logging.info(f"{self.__class__.__name__} - data upserted successfully into table {self.table_name}.")
-            except Exception as e:
-                logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] {e}")
-                print(f"An error occurred: {e}")
-            finally:
-                cursor.close()
-                                        
-        self.conn.close()
+                try:
+                    cursor.executemany(upsert_query, data_tuples)
+                    self.conn.commit()
+                    print((f"Data upserted successfully into {self.table_name}."))
+                    logging.info(f"{self.__class__.__name__} [INFO] - data upserted successfully into table {self.table_name}.")
+                except Exception as e:
+                    logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] {e}")
+                    print(f"A critical error has occurred: {e}")
+                finally:
+                    cursor.close()                            
+                self.conn.close()
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__} [ERROR] when trying to write data with {table_exists} parameter!")
 
 
     def create_table(self):
@@ -71,9 +77,11 @@ class DataLoader():
                 logging.info((f"{self.__class__.__name__} - table {self.table_name} created successfully."))
                 print(f"Table {self.table_name} created successfully.")
             else:
+                logging.info(f"{self.__class__.__name__} [INFO] - table {self.table_name} already exists.")
                 print(f"{self.__class__.__name__} - table {self.table_name} already exists.")
         except Exception as e:
-            print(f"The following exception has occurred {e} when trying to create table {self.table_name}!")
+            logging.error(f"{self.__class__.__name__} [ERROR] - {e} when trying to create table {self.table_name}!")
+            print(f"The following error has occurred {e} when trying to create table {self.table_name}!")
         finally:
             cursor.close()
 
@@ -89,9 +97,10 @@ class DataLoader():
             print(f"Table {table_name} has been dropped successfully.")
         except Exception as e:
             logging.error(f"{self.__class__.__name__} [ERROR] while dropping the table {table_name}: {e}")
-            print(f"An error occurred while dropping the table {table_name}: {e}")
         finally:
             cursor.close()
+        
+        self.conn.close()
 
     def query(self,q):
         with sqlite3.connect(self.db_name) as conn:
