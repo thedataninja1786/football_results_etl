@@ -61,8 +61,7 @@ class FootballAPI:
                 logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] \
                                   - failed to retrieve data with status code {response.status_code} - {response.content}!")
         except Exception as e:
-            logging.warning(f"{self.__class__.__name__} - failed to retrieve data for date {date} with exception {e}!")
-            print(f"Failed to retrieve data for date {date} with exception {e}!")
+            logging.warning(f"{self.__class__.__name__} [WARNING] - failed to retrieve data for date {date} with exception {e}!")
         
         return {}
                 
