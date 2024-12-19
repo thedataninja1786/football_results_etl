@@ -1,3 +1,3 @@
 <p align="center">
-  <img src="etl.png" height ="340" width="555" title="hover text">
+  <img src="etl.png" height="500" width="800" title="hover text">
 </p>
