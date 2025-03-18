@@ -12,6 +12,4 @@ loader.connect()
 data = extractor.get_data()
 # Write data
 loader.write_data(data_df=data)
-
-q = """ select * from fixtures """
-print(loader.query(q))
+loader.close_connection()
