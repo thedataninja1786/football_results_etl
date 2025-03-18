@@ -16,55 +16,52 @@ class DataLoader():
         self.table_data = Config.TABLE_DATA
         self.conn = None
 
-
-    def connect(self):
+    def connect(self) -> None:
         try:
             if os.path.exists(self.db_name):
-                self.conn = sqlite3.connect(self.db_name)
                 logging.info(f"{self.__class__.__name__} [INFO] - connected to database: {self.db_name}")
             else:
-                logging.info(f"{self.__class__.__name__} [INFO] - {self.db_name} does not exist, and has been created!")
-                self.conn = sqlite3.connect(self.db_name)
+                logging.info(f"{self.__class__.__name__} [INFO] - {self.db_name} does not exist, and has been created!")            
+            self.conn = sqlite3.connect(self.db_name)
         except Exception as e:
             logging.error(f"{self.__class__.__name__} - [ERROR] {e} occurred when trying to connect to {self.db_name}!")
-        
     
-    def write_data(self,data_df,table_exists="upsert"):
+
+    def write_data(self,data_df:pd.DataFrame,write_method="upsert") -> None:
+        if write_method == "replace":
+            data_df.to_sql(self.table_name, self.conn, if_exists='replace', index=False)
+        elif write_method == "append":
+            data_df.to_sql(self.table_name, self.conn, if_exists='append', index=False)
+        elif write_method == "upsert":
+
+            update_columns = [c for c in data_df.columns if c not in ['fixture_id', 'event_timestamp']]
+            upsert_query =      f"""
+                                    INSERT INTO {self.table_name} ({', '.join(data_df.columns)})
+                                    VALUES ({', '.join(['?' for _ in data_df.columns])})
+                                    ON CONFLICT(fixture_id, event_timestamp) DO UPDATE SET
+                                    {', '.join([f"{col}=EXCLUDED.{col}" for col in update_columns])};
+                                """ 
+            data_tuples = list(data_df.itertuples(index=False, name=None))
+            cursor = self.conn.cursor()
+        else:
+            logging.error(f"{self.__class__.__name__} [ERROR] when trying to write data with {write_method} parameter! ")
+            raise NotImplementedError(f"{write_method} is not implemented!")            
+
         try:
-            if table_exists == "replace":
-                data_df.to_sql(self.table_name, self.conn, if_exists='replace', index=False)
-            elif table_exists == "append":
-                data_df.to_sql(self.table_name, self.conn, if_exists='append', index=False)
-            elif table_exists == "upsert":
-
-                update_columns = [c for c in data_df.columns if c not in ['fixture_id', 'event_timestamp']]
-                upsert_query =      f"""
-                                        INSERT INTO {self.table_name} ({', '.join(data_df.columns)})
-                                        VALUES ({', '.join(['?' for _ in data_df.columns])})
-                                        ON CONFLICT(fixture_id, event_timestamp) DO UPDATE SET
-                                        {', '.join([f"{col}=EXCLUDED.{col}" for col in update_columns])};
-                                    """ 
-                data_tuples = list(data_df.itertuples(index=False, name=None))
-                cursor = self.conn.cursor()
-
-                try:
-                    cursor.executemany(upsert_query, data_tuples)
-                    self.conn.commit()
-                    print((f"Data upserted successfully into {self.table_name}."))
-                    logging.info(f"{self.__class__.__name__} [INFO] - data upserted successfully into table {self.table_name}.")
-                except Exception as e:
-                    logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] {e}")
-                    print(f"A critical error has occurred: {e}")
-                finally:
-                    cursor.close()                            
-                self.conn.close()
+            cursor.executemany(upsert_query, data_tuples)
+            self.conn.commit()
+            print((f"Data upserted successfully into {self.table_name}."))
+            logging.info(f"{self.__class__.__name__} [INFO] - data upserted successfully into table {self.table_name}.")
         except Exception as e:
-            logging.error(f"{self.__class__.__name__} [ERROR] when trying to write data with {table_exists} parameter!")
+            logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] {e}")
+            print(f"A critical error has occurred: {e}")
+        finally:
+            self.conn.close()
 
 
-    def create_table(self):
-        cursor = self.conn.cursor()
+    def create_table(self) -> None:
         try:
+            cursor = self.conn.cursor()
             # Check if the table exists
             cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{self.table_name}'")
             exists = cursor.fetchone()
@@ -85,9 +82,8 @@ class DataLoader():
         finally:
             cursor.close()
 
-        self.conn.close()
 
-    def drop_table(self, table_name):
+    def drop_table(self, table_name:str) -> None:
         try:
             cursor = self.conn.cursor()
             drop_query = f"DROP TABLE IF EXISTS {table_name}"
@@ -99,9 +95,15 @@ class DataLoader():
             logging.error(f"{self.__class__.__name__} [ERROR] while dropping the table {table_name}: {e}")
         finally:
             cursor.close()
-        
-        self.conn.close()
 
-    def query(self,q):
+        
+    def close_connection(self) -> None:
+        if self.conn:
+            self.conn.close()
+            logging.info(f"{self.__class__.__name__} [INFO] - Connection to {self.db_name} closed.")
+        else:
+            print("No open connection!")
+
+    def query(self,q) -> pd.DataFrame:
         with sqlite3.connect(self.db_name) as conn:
             return pd.read_sql(q,con = conn)
