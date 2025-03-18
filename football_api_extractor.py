@@ -1,10 +1,7 @@
 import requests
-import numpy as np
-import os
 import pandas as pd
 from datetime import datetime, timedelta
 import json
-import time
 from configs.api import FootballAPIConfig as Config
 import logging
 
@@ -29,7 +26,7 @@ class FootballAPI:
         }
 
     
-    def gen_url(self,date):        
+    def gen_url(self,date:str) -> str:        
         return self.base_url + date
 
 
@@ -46,7 +43,7 @@ class FootballAPI:
         return list(dates)
     
 
-    def get_request(self,date):
+    def get_request(self,date) -> dict:
         url = self.gen_url(date)
         try:
             response = requests.get(
@@ -66,7 +63,7 @@ class FootballAPI:
         return {}
                 
 
-    def transform_data(self,data,source_date):
+    def transform_data(self,data:dict,source_date:str) -> dict:
         """ Remove unicode characters from team names"""
         processing_timestamp = source_date.strftime("%Y-%m-%d %H:%M:%S")
         data = json.loads(json.dumps(data).replace('\\', '\\\\'))
@@ -84,12 +81,12 @@ class FootballAPI:
                         v["awayTeam"] = "".join([x for x in v["awayTeam"] if x != "\\"])
         
         except Exception as e:
-            logging.error(f"{self.__class__.__name__} - [ERROR] occurred when transforming data!" )
+            logging.error(f"{self.__class__.__name__} - {self.transform_data.__name__} - [ERROR] occurred when transforming data!")
 
         return data
     
 
-    def get_data(self):
+    def get_data(self) -> pd.DataFrame:
         result_df = pd.DataFrame()
         source_date = datetime.now()
         dates = self.get_date_range(source_date=source_date,window=1)
@@ -100,7 +97,8 @@ class FootballAPI:
                 data = data["api"]["fixtures"]
                 data = self.transform_data(data,source_date=source_date)
                 data = pd.DataFrame(data).T
-                result_df = result_df.append(data,ignore_index = True)
+                result_df = pd.concat([result_df, data], ignore_index=True)
+
                 if num_results != data.shape[0]:
                     logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] \
                                      - data received {num_results} != data after processing {data.shape[0]}!")
