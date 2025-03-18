@@ -17,7 +17,7 @@ class FootballAPI:
          self.unicode_mapping = Config.UNICODE_MAPPING
          
 
-    def get_headers(self):
+    def get_headers(self) -> dict:
         return {
             "Content-Type": "application/json",
             "Accept": "application/json",
