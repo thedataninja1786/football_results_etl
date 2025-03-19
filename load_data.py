@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 import os
+from typing import Optional
 from configs.api import SchemaConfigs as Config
 import logging 
 from datetime import datetime
@@ -27,7 +28,7 @@ class DataLoader():
             logging.error(f"{self.__class__.__name__} - [ERROR] {e} occurred when trying to connect to {self.db_name}!")
     
 
-    def write_data(self,data_df:pd.DataFrame,write_method="upsert") -> None:
+    def write_data(self,data_df:pd.DataFrame,write_method:Optional[str]="upsert") -> None:
         if write_method == "replace":
             data_df.to_sql(self.table_name, self.conn, if_exists='replace', index=False)
         elif write_method == "append":
@@ -42,12 +43,13 @@ class DataLoader():
                                     {', '.join([f"{col}=EXCLUDED.{col}" for col in update_columns])};
                                 """ 
             data_tuples = list(data_df.itertuples(index=False, name=None))
-            cursor = self.conn.cursor()
+            
         else:
             logging.error(f"{self.__class__.__name__} [ERROR] when trying to write data with {write_method} parameter! ")
             raise NotImplementedError(f"{write_method} is not implemented!")            
 
         try:
+            cursor = self.conn.cursor()
             cursor.executemany(upsert_query, data_tuples)
             self.conn.commit()
             print((f"Data upserted successfully into {self.table_name}."))
@@ -56,7 +58,7 @@ class DataLoader():
             logging.critical(f"{self.__class__.__name__} [CRITICAL ERROR] {e}")
             print(f"A critical error has occurred: {e}")
         finally:
-            self.conn.close()
+            cursor.close()
 
 
     def create_table(self) -> None:
@@ -104,6 +106,6 @@ class DataLoader():
         else:
             print("No open connection!")
 
-    def query(self,q) -> pd.DataFrame:
+    def query(self,q:str) -> pd.DataFrame:
         with sqlite3.connect(self.db_name) as conn:
             return pd.read_sql(q,con = conn)
