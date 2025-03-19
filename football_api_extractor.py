@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
+import os
 import json
 from configs.api import FootballAPIConfig as Config
 import logging
@@ -11,10 +12,10 @@ logging.basicConfig(filename=f"logs/app-{logs_datetime}.log", level=logging.INFO
 
 class FootballAPI:
     def __init__(self):
-         self.api_key = Config.API_KEY
-         self.host = Config.HOST
-         self.base_url = Config.BASE_URL
-         self.unicode_mapping = Config.UNICODE_MAPPING
+        self.api_key = os.environ.get("API_KEY")
+        self.host = os.environ.get("HOST")
+        self.base_url = Config.BASE_URL
+        self.unicode_mapping = Config.UNICODE_MAPPING
          
 
     def get_headers(self) -> dict:
