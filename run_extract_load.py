@@ -10,6 +10,10 @@ loader.connect()
 
 # Extract data
 data = extractor.get_data()
+
+# Create fixtures table
+loader.create_table() 
+
 # Write data
 loader.write_data(data_df=data)
 loader.close_connection()
