@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
+from typing import Optional, List
 import os
 import json
 from configs.api import FootballAPIConfig as Config
@@ -31,7 +32,7 @@ class FootballAPI:
         return self.base_url + date
 
 
-    def get_date_range(self, source_date, window=None):
+    def _get_date_range(self, source_date, window:Optional[int]=None) -> List[str]:
         if window is None:
             window = Config.DATA_WINDOW
 
@@ -44,7 +45,7 @@ class FootballAPI:
         return list(dates)
     
 
-    def get_request(self,date) -> dict:
+    def get_request(self,date:str) -> dict:
         url = self.gen_url(date)
         try:
             response = requests.get(
@@ -90,7 +91,7 @@ class FootballAPI:
     def get_data(self) -> pd.DataFrame:
         result_df = pd.DataFrame()
         source_date = datetime.now()
-        dates = self.get_date_range(source_date=source_date,window=1)
+        dates = self._get_date_range(source_date=source_date,window=1)
         for date in dates:
             data = self.get_request(date=date)
             if data:
