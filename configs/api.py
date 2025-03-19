@@ -1,6 +1,4 @@
 class FootballAPIConfig:
-    API_KEY = "API_KEY"
-    HOST = "api-football-v1.p.rapidapi.com"
     DATE_FORMAT = "%Y-%m-%d"
     DATA_WINDOW = 5
     DATA_SHIFT = 1
