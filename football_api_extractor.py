@@ -6,8 +6,10 @@ import os
 import json
 from configs.api import FootballAPIConfig as Config
 import logging
+from dotenv import load_dotenv
 
 logs_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+load_dotenv()
 
 logging.basicConfig(
     filename=f"logs/app-{logs_datetime}.log",
@@ -34,7 +36,8 @@ class FootballAPI:
     def gen_url(self, date: str) -> str:
         return self.base_url + date
 
-    def _get_date_range(self, source_date, window: Optional[int] = None) -> List[str]:
+    @staticmethod
+    def get_date_range(source_date, window: Optional[int] = None) -> List[str]:
         if window is None:
             window = Config.DATA_WINDOW
 
@@ -101,7 +104,7 @@ class FootballAPI:
     def get_data(self) -> pd.DataFrame:
         result_df = pd.DataFrame()
         source_date = datetime.now()
-        dates = self._get_date_range(source_date=source_date, window=1)
+        dates = self.get_date_range(source_date=source_date, window=1)
         for date in dates:
             data = self.get_request(date=date)
             if data:
