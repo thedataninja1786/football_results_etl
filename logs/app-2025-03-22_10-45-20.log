@@ -1,0 +1,6 @@
+2025-03-22 10:45:20,726 - root - INFO - DataLoader [INFO] - connected to database: football_results.db
+2025-03-22 10:45:21,190 - root - INFO - FootballAPI - request for 2025-03-20 was successful!
+2025-03-22 10:45:21,629 - root - INFO - FootballAPI - request for 2025-03-21 was successful!
+2025-03-22 10:45:21,651 - root - INFO - DataLoader [INFO] - table fixtures already exists.
+2025-03-22 10:45:21,668 - root - INFO - DataLoader [INFO] - data upserted successfully into table fixtures.
+2025-03-22 10:45:21,671 - root - INFO - DataLoader [INFO] - Connection to football_results.db closed.
